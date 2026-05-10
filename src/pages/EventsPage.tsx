@@ -1,13 +1,40 @@
-import { useState } from "react";
-import mockEvents from "../../data/mock_events.json";
-import { SecurityEvent } from "../types";
+import { useEffect, useState } from "react";
+import { getEvents } from "../api";
+import type { SecurityEvent } from "../types";
 
 export default function EventsPage() {
   const [search, setSearch] = useState("");
   const [severityFilter, setSeverityFilter] = useState("ALL");
   const [selectedEvent, setSelectedEvent] = useState<SecurityEvent | null>(null);
+  const [events, setEvents] = useState<SecurityEvent[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const events = mockEvents as SecurityEvent[];
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setLoadError(null);
+      try {
+        const data = await getEvents();
+        if (cancelled) return;
+        if (!Array.isArray(data)) {
+          setLoadError("Unexpected response from server");
+          return;
+        }
+        setEvents(data as SecurityEvent[]);
+      } catch (e) {
+        if (!cancelled) {
+          setLoadError(e instanceof Error ? e.message : "Failed to load events");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filtered = events.filter((e) => {
     const matchesSearch =
@@ -23,6 +50,26 @@ export default function EventsPage() {
     if (s === "MEDIUM") return "orange";
     return "green";
   };
+
+  if (loading) {
+    return (
+      <div className="page-container">
+        <h1>Security Events</h1>
+        <p style={{ color: "#666" }}>Loading events…</p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="page-container">
+        <h1>Security Events</h1>
+        <p style={{ color: "#c00" }} role="alert">
+          {loadError}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container">
@@ -50,12 +97,7 @@ export default function EventsPage() {
 
       {search && (
         <p>
-          <span
-            dangerouslySetInnerHTML={{
-              __html: "Showing results for: <strong>" + search + "</strong>",
-            }}
-          />
-          {" "}({filtered.length} events)
+          Showing results for: <strong>{search}</strong> ({filtered.length} events)
         </p>
       )}
 
@@ -99,7 +141,9 @@ export default function EventsPage() {
       <div style={{ marginTop: 12 }}>
         <button
           onClick={() => {
-            const blob = new Blob([JSON.stringify(filtered, null, 2)], { type: "application/json" });
+            const blob = new Blob([JSON.stringify(filtered, null, 2)], {
+              type: "application/json",
+            });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
@@ -108,17 +152,17 @@ export default function EventsPage() {
             URL.revokeObjectURL(url);
           }}
           style={{ fontSize: 13 }}
+          type="button"
         >
           Export Events (JSON)
         </button>
       </div>
 
-      {/* Inline event detail */}
       {selectedEvent && (
         <div className="event-detail">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <h2>{selectedEvent.title}</h2>
-            <button onClick={() => setSelectedEvent(null)} style={{ cursor: "pointer" }}>
+            <button type="button" onClick={() => setSelectedEvent(null)} style={{ cursor: "pointer" }}>
               Close
             </button>
           </div>
@@ -131,7 +175,6 @@ export default function EventsPage() {
           <p>
             <strong>Description:</strong>
           </p>
-          {/* render rich text descriptions */}
           <div
             ref={(el) => {
               if (el) el.innerHTML = selectedEvent.description;
