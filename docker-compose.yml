@@ -1,0 +1,47 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: penguwave
+      POSTGRES_PASSWORD: penguwave
+      POSTGRES_DB: penguwave
+    volumes:
+      - penguwave_pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U penguwave -d penguwave"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://penguwave:penguwave@postgres:5432/penguwave
+      JWT_SECRET: change-me-use-a-long-secret-in-production
+      PORT: "3001"
+      EVENTS_JSON_PATH: /app/data/mock_events.json
+    volumes:
+      - ./data/mock_events.json:/app/data/mock_events.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose:
+      - "3001"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ""
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+volumes:
+  penguwave_pgdata:

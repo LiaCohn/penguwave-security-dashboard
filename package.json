@@ -3,11 +3,15 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "workspaces": ["server"],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "server:dev": "npm run dev -w penguwave-server",
+    "server:build": "npm run build -w penguwave-server",
+    "server:db-setup": "npm run db-setup -w penguwave-server"
   },
   "dependencies": {
     "react": "^19.2.0",

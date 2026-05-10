@@ -1,8 +1,15 @@
-const API_URL = "http://localhost:3001";
+const envBase =
+  typeof import.meta.env.VITE_API_URL === "string" ? import.meta.env.VITE_API_URL.trim() : "";
+const API_ORIGIN = envBase.endsWith("/") ? envBase.slice(0, -1) : envBase;
+
+/** Empty base → same-origin `/api/*` (nginx proxy in Compose); set `VITE_API_URL` for standalone dev API */
+function api(path: string): string {
+  return `${API_ORIGIN}${path.startsWith("/") ? path : `/${path}`}`;
+}
 
 export async function login(email: string, password: string) {
   console.log("Login attempt:", email, password);
-  const res = await fetch(`${API_URL}/api/auth/login`, {
+  const res = await fetch(api("/api/auth/login"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
@@ -14,7 +21,7 @@ export async function login(email: string, password: string) {
 
 export async function getEvents() {
   const token = localStorage.getItem("token");
-  const res = await fetch(`${API_URL}/api/events`, {
+  const res = await fetch(api("/api/events"), {
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.json();
@@ -22,7 +29,7 @@ export async function getEvents() {
 
 export async function getUsers() {
   const token = localStorage.getItem("token");
-  const res = await fetch(`${API_URL}/api/users`, {
+  const res = await fetch(api("/api/users"), {
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.json();
@@ -30,7 +37,7 @@ export async function getUsers() {
 
 export async function createUser(user: { email: string; password: string; role: string }) {
   const token = localStorage.getItem("token");
-  const res = await fetch(`${API_URL}/api/users`, {
+  const res = await fetch(api("/api/users"), {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify(user),
@@ -40,7 +47,7 @@ export async function createUser(user: { email: string; password: string; role: 
 
 export async function deleteUser(id: string) {
   const token = localStorage.getItem("token");
-  const res = await fetch(`${API_URL}/api/users/${id}`, {
+  const res = await fetch(api(`/api/users/${id}`), {
     method: "DELETE",
     headers: { Authorization: `Bearer ${token}` },
   });
