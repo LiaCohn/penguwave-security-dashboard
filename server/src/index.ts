@@ -1,8 +1,11 @@
 import express from "express";
 import { pool } from "./db/pool.js";
+import { authRouter } from "./routes/auth.js";
 
 const app = express();
 app.use(express.json());
+
+app.use("/api/auth", authRouter);
 
 app.get("/api/health", async (_req, res) => {
   try {
