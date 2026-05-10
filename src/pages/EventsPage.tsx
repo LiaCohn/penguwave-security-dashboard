@@ -175,11 +175,7 @@ export default function EventsPage() {
           <p>
             <strong>Description:</strong>
           </p>
-          <div
-            ref={(el) => {
-              if (el) el.innerHTML = selectedEvent.description;
-            }}
-          />
+          <p style={{ whiteSpace: "pre-wrap" }}>{selectedEvent.description}</p>
           <p>
             <strong>Asset:</strong> {selectedEvent.assetHostname} ({selectedEvent.assetIp})
           </p>
