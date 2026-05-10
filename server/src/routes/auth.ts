@@ -2,7 +2,9 @@ import bcrypt from "bcryptjs";
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { requireAuth, signAccessToken } from "../middleware/auth.js";
+import { loginBodySchema } from "../schemas/auth.js";
 import { findUserByEmail, findUserPublicById } from "../services/users.js";
+import { parseBody } from "../validation/parseBody.js";
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -17,12 +19,12 @@ const invalidCredentials = { error: "Invalid email or password" } as const;
 export const authRouter = Router();
 
 authRouter.post("/login", loginLimiter, async (req, res) => {
-  const email = req.body?.email;
-  const password = req.body?.password;
-  if (typeof email !== "string" || typeof password !== "string" || !email.trim() || !password) {
-    res.status(400).json({ error: "Email and password are required" });
+  const body = parseBody(loginBodySchema, req.body);
+  if (!body.ok) {
+    res.status(400).json({ error: body.error });
     return;
   }
+  const { email, password } = body.data;
 
   const user = await findUserByEmail(email);
   if (!user) {
