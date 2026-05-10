@@ -39,7 +39,16 @@ usersRouter.post("/", async (req, res, next) => {
     res.status(201).json(user);
   } catch (err: unknown) {
     if (typeof err === "object" && err !== null && (err as { code?: string }).code === "23505") {
-      res.status(400).json({ error: "Email already in use" });
+      const constraint =
+        "constraint" in (err as Record<string, unknown>) &&
+        typeof (err as { constraint?: unknown }).constraint === "string"
+          ? (err as { constraint: string }).constraint
+          : "";
+      if (constraint.includes("email")) {
+        res.status(400).json({ error: "Email already in use" });
+        return;
+      }
+      res.status(409).json({ error: "Conflict while creating user, please retry" });
       return;
     }
     next(err);

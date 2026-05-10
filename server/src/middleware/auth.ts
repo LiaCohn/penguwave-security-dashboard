@@ -3,6 +3,7 @@ import type { NextFunction, Request, Response } from "express";
 import { findUserRoleStatusById, type UserRole } from "../services/users.js";
 
 const JWT_ALG = "HS256" as const;
+export const AUTH_COOKIE_NAME = "penguwave_access_token";
 
 function getJwtSecret(): string {
   const s = process.env.JWT_SECRET?.trim();
@@ -37,7 +38,15 @@ export function signAccessToken(claims: { sub: string; role: UserRole }): string
 
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
   const header = req.headers.authorization;
-  const token = header?.startsWith("Bearer ") ? header.slice(7).trim() : null;
+  const bearerToken = header?.startsWith("Bearer ") ? header.slice(7).trim() : null;
+  const cookieToken =
+    req.cookies &&
+    typeof req.cookies === "object" &&
+    AUTH_COOKIE_NAME in req.cookies &&
+    typeof req.cookies[AUTH_COOKIE_NAME] === "string"
+      ? (req.cookies[AUTH_COOKIE_NAME] as string)
+      : null;
+  const token = bearerToken || cookieToken;
   if (!token) {
     res.status(401).json({ error: "Authentication required" });
     return;

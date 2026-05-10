@@ -1,4 +1,5 @@
 import { pool } from "../db/pool.js";
+import { randomUUID } from "node:crypto";
 
 export type UserRole = "admin" | "analyst" | "viewer";
 export type UserStatus = "active" | "disabled";
@@ -62,27 +63,12 @@ export async function countOtherActiveAdmins(excludeId: string): Promise<number>
   return Number(result.rows[0]?.n ?? 0);
 }
 
-async function nextUsrNumericId(): Promise<string> {
-  const result = await pool.query<{ id: string }>(
-    `SELECT id FROM users WHERE id ~ '^usr-[0-9]+$'`,
-  );
-  let max = 0;
-  for (const row of result.rows) {
-    const m = /^usr-(\d+)$/.exec(row.id);
-    if (m) {
-      max = Math.max(max, Number.parseInt(m[1], 10));
-    }
-  }
-  const next = max + 1;
-  return `usr-${String(next).padStart(3, "0")}`;
-}
-
 export async function createUser(params: {
   email: string;
   password_hash: string;
   role: UserRole;
 }): Promise<UserPublic> {
-  const id = await nextUsrNumericId();
+  const id = `usr-${randomUUID()}`;
   const result = await pool.query<UserPublic>(
     `INSERT INTO users (id, email, password_hash, role, status)
      VALUES ($1, $2, $3, $4, 'active')

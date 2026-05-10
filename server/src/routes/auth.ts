@@ -1,7 +1,8 @@
 import bcrypt from "bcryptjs";
 import { Router } from "express";
+import type { Response } from "express";
 import rateLimit from "express-rate-limit";
-import { requireAuth, signAccessToken } from "../middleware/auth.js";
+import { AUTH_COOKIE_NAME, requireAuth, signAccessToken } from "../middleware/auth.js";
 import { loginBodySchema } from "../schemas/auth.js";
 import { findUserByEmail, findUserPublicById } from "../services/users.js";
 import { parseBody } from "../validation/parseBody.js";
@@ -15,6 +16,26 @@ const loginLimiter = rateLimit({
 });
 
 const invalidCredentials = { error: "Invalid email or password" } as const;
+const cookieSecure = process.env.NODE_ENV === "production";
+
+function setAuthCookie(res: Response, token: string): void {
+  res.cookie(AUTH_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: cookieSecure,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 8 * 60 * 60 * 1000,
+  });
+}
+
+function clearAuthCookie(res: Response): void {
+  res.clearCookie(AUTH_COOKIE_NAME, {
+    httpOnly: true,
+    secure: cookieSecure,
+    sameSite: "lax",
+    path: "/",
+  });
+}
 
 export const authRouter = Router();
 
@@ -43,13 +64,14 @@ authRouter.post("/login", loginLimiter, async (req, res) => {
   }
 
   const token = signAccessToken({ sub: user.id, role: user.role });
+  setAuthCookie(res, token);
   res.json({
-    token,
     user: { id: user.id, email: user.email, role: user.role },
   });
 });
 
 authRouter.post("/logout", (_req, res) => {
+  clearAuthCookie(res);
   res.json({ message: "Logged out" });
 });
 

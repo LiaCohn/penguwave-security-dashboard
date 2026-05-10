@@ -16,10 +16,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (!localStorage.getItem("token")) {
-        if (!cancelled) setIsLoading(false);
-        return;
-      }
       const me = await getAuthMe();
       if (!cancelled) {
         setUser(me);

@@ -30,6 +30,7 @@ function getErrorMessage(data: unknown, fallback: string): string {
 export async function login(email: string, password: string) {
   const res = await fetch(apiUrl("/api/auth/login"), {
     method: "POST",
+    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
@@ -37,31 +38,21 @@ export async function login(email: string, password: string) {
   if (!res.ok) {
     throw new Error(getErrorMessage(data, "Invalid email or password"));
   }
-  if (
-    !data ||
-    typeof data !== "object" ||
-    !("token" in data) ||
-    typeof (data as { token: unknown }).token !== "string"
-  ) {
+  if (!data || typeof data !== "object" || !("user" in data)) {
     throw new Error("Invalid response from server");
   }
-  localStorage.setItem("token", (data as { token: string }).token);
-  return data as { token: string; user: { id: string; email: string; role: string } };
+  return data as { user: { id: string; email: string; role: string } };
 }
 
 export async function getAuthMe(): Promise<User | null> {
-  const token = localStorage.getItem("token");
-  if (!token) return null;
   const res = await fetch(apiUrl("/api/auth/me"), {
-    headers: { Authorization: `Bearer ${token}` },
+    credentials: "include",
   });
   const data = await readJson(res);
   if (res.status === 401) {
-    localStorage.removeItem("token");
     return null;
   }
   if (!res.ok) {
-    localStorage.removeItem("token");
     return null;
   }
   if (!data || typeof data !== "object") return null;
@@ -78,26 +69,22 @@ export async function getAuthMe(): Promise<User | null> {
 }
 
 export async function postLogout(): Promise<void> {
-  const token = localStorage.getItem("token");
   try {
     await fetch(apiUrl("/api/auth/logout"), {
       method: "POST",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: "include",
     });
   } catch {
     /* ignore network errors on logout */
   }
-  localStorage.removeItem("token");
 }
 
 export async function getEvents() {
-  const token = localStorage.getItem("token");
   const res = await fetch(apiUrl("/api/events"), {
-    headers: { Authorization: `Bearer ${token ?? ""}` },
+    credentials: "include",
   });
   const data = await readJson(res);
   if (res.status === 401) {
-    localStorage.removeItem("token");
     throw new Error("Authentication required");
   }
   if (!res.ok) {
@@ -107,13 +94,11 @@ export async function getEvents() {
 }
 
 export async function getUsers() {
-  const token = localStorage.getItem("token");
   const res = await fetch(apiUrl("/api/users"), {
-    headers: { Authorization: `Bearer ${token ?? ""}` },
+    credentials: "include",
   });
   const data = await readJson(res);
   if (res.status === 401) {
-    localStorage.removeItem("token");
     throw new Error("Authentication required");
   }
   if (res.status === 403) {
@@ -126,10 +111,10 @@ export async function getUsers() {
 }
 
 export async function createUser(user: { email: string; password: string; role: string }) {
-  const token = localStorage.getItem("token");
   const res = await fetch(apiUrl("/api/users"), {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token ?? ""}` },
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(user),
   });
   const data = await readJson(res);
@@ -140,10 +125,9 @@ export async function createUser(user: { email: string; password: string; role: 
 }
 
 export async function deleteUser(id: string) {
-  const token = localStorage.getItem("token");
   const res = await fetch(apiUrl(`/api/users/${id}`), {
     method: "DELETE",
-    headers: { Authorization: `Bearer ${token ?? ""}` },
+    credentials: "include",
   });
   const data = await readJson(res);
   if (!res.ok) {
