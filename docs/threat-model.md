@@ -1,13 +1,21 @@
-# Threat Thinking (Task 1)
+# Threat thinking (Part 2)
 
-This system handles authentication, user administration, and security event data viewed by analysts. The primary assets to protect are user accounts, admin privileges, and event data confidentiality.
+This app combines user management and security event data, so failures in authentication or authorization can expose sensitive analyst workflows and alert content.
+Authentication
 
-The first likely attack path is account compromise through weak authentication handling. Attackers may attempt credential stuffing, brute-force login attempts, or session theft. To reduce this risk, the system uses bcrypt-hashed passwords, login rate limiting, and signed JWT-based sessions stored in HttpOnly cookies. Storing session tokens in HttpOnly cookies (instead of JavaScript-readable storage) limits token theft if browser-side script injection occurs.
+The login flow is an obvious target: credential stuffing and password guessing against known or weak passwords. Implementation mistakes could also enable authentication bypass (for example, unsafe handling of credentials or trust placed only in client-side checks). I plan to mitigate this with rate limiting (and generic errors where appropriate), slow password verification, and strong password storage (one-way hashing with a modern adaptive algorithm).
 
-A second major risk is privilege escalation and unauthorized data access. Because the application has an admin-only user management area and user-scoped events, attackers may try to call APIs directly (without using UI restrictions), replay old tokens, or access other users' data by ID manipulation. Mitigations include server-side authorization checks on every protected endpoint, active/disabled status enforcement, role checks for `/api/users`, and per-user filtering in `/api/events`. For sensitive authorization decisions, role and status are re-validated from the database rather than relying only on JWT claims.
+* Injection and unsafe data handling
+If persistence uses SQL or other query layers, poorly constructed queries could admit injection. The primary control is parameterized queries / safe ORM usage, plus validated, typed inputs at API boundaries—not ad hoc “sanitize everything.”
 
-A third risk is injection and client-side attacks, especially XSS and SQL injection. Event data may contain untrusted text, so rendering must avoid `innerHTML` unless content is sanitized. SQL injection is mitigated with parameterized queries throughout the backend. Input payloads are validated using schema-based validation (`zod`) before processing.
+* Authorization (especially IDOR and privilege escalation)
+UI hiding is insufficient; every sensitive operation must be authorized on the server using the authenticated identity and explicit roles/permissions.
 
-Operationally, misconfiguration is also a threat: missing secure headers, permissive CORS, weak secrets, and overexposed databases can all undermine application controls. The backend uses secure HTTP headers and an explicit CORS allowlist. In production, secrets should be stored in a secrets manager, HTTPS should be enforced end-to-end, cookies should always be Secure, and database access should remain private with least privilege.
+* Sessions and tokens
+Weak token handling (long-lived credentials, leakage via XSS or insecure transport, or tokens stored where JavaScript can read them unnecessarily) enables session theft and impersonation. I plan time-bounded credentials, HTTPS in production, and a deliberate choice of how the client carries the credential (with awareness of XSS vs cookie trade-offs).
 
-Overall, the security focus is to protect identity and authorization boundaries first, then reduce exploitability of common web attack vectors, and finally harden runtime/deployment posture so controls remain effective outside local development.
+* Data exposure
+Event and user APIs should avoid over-sharing fields and avoid information leaks via verbose errors (e.g. login responses that distinguish “unknown user” from “wrong password”).
+
+* Planned defenses (summary)
+Password hashing suitable for verifier storage (e.g. bcrypt/argon2-style work factors), bounded-lifetime credentials, server-side authorization on protected routes and mutating actions, safe database access patterns, login rate limiting, and production-facing transport and error-handling hygiene.
