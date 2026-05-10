@@ -35,3 +35,12 @@ export async function findUserPublicById(id: string): Promise<UserPublic | null>
   );
   return result.rows[0] ?? null;
 }
+
+/** Role + status only (for authz checks without loading full row). */
+export async function findUserRoleStatusById(id: string): Promise<Pick<UserPublic, "role" | "status"> | null> {
+  const result = await pool.query<Pick<UserPublic, "role" | "status">>(
+    `SELECT role, status FROM users WHERE id = $1`,
+    [id],
+  );
+  return result.rows[0] ?? null;
+}
