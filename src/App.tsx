@@ -1,42 +1,45 @@
-import { useState, useEffect } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Navigate, Outlet, Route, Routes } from "react-router-dom";
+import AdminRoute from "./components/AdminRoute";
 import Navbar from "./components/Navbar";
-import LoginModal from "./components/LoginModal";
+import ProtectedRoute from "./components/ProtectedRoute";
 import WelcomeBanner from "./components/WelcomeBanner";
 import EventsPage from "./pages/EventsPage";
-import UsersPage from "./pages/UsersPage";
+import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
+import UsersPage from "./pages/UsersPage";
 
-function App() {
-  const [showLogin, setShowLogin] = useState(false);
-
-  // Show login modal on first visit
-  useEffect(() => {
-    const dismissed = sessionStorage.getItem("login-dismissed");
-    if (!dismissed) {
-      setShowLogin(true);
-    }
-  }, []);
-
-  const handleCloseLogin = () => {
-    sessionStorage.setItem("login-dismissed", "true");
-    setShowLogin(false);
-  };
-
+function MainLayout() {
   return (
     <>
-      <Navbar onLoginClick={() => setShowLogin(true)} />
+      <Navbar />
       <div className="container">
         <WelcomeBanner />
-        <Routes>
+        <Outlet />
+      </div>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route element={<ProtectedRoute />}>
+        <Route element={<MainLayout />}>
           <Route path="/" element={<Navigate to="/events" replace />} />
           <Route path="/events" element={<EventsPage />} />
-          <Route path="/users" element={<UsersPage />} />
+          <Route
+            path="/users"
+            element={
+              <AdminRoute>
+                <UsersPage />
+              </AdminRoute>
+            }
+          />
           <Route path="*" element={<NotFound />} />
-        </Routes>
-      </div>
-      {showLogin && <LoginModal onClose={handleCloseLogin} />}
-    </>
+        </Route>
+      </Route>
+    </Routes>
   );
 }
 
