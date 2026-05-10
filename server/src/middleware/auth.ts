@@ -82,3 +82,22 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction): v
     next();
   })().catch(next);
 }
+
+/**
+ * After requireAuth: reject disabled users so revoked accounts cannot read protected resources with a stale JWT.
+ */
+export function requireActiveUser(req: Request, res: Response, next: NextFunction): void {
+  void (async () => {
+    if (!req.user) {
+      res.status(401).json({ error: "Authentication required" });
+      return;
+    }
+    const row = await findUserRoleStatusById(req.user.id);
+    if (!row || row.status !== "active") {
+      res.status(401).json({ error: "Authentication required" });
+      return;
+    }
+    req.user = { id: req.user.id, role: row.role };
+    next();
+  })().catch(next);
+}
