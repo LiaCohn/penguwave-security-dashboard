@@ -15,8 +15,9 @@ Authenticate a user and start a session.
 - **Body:** `{ "email": "...", "password": "..." }`
 - **Success (200):**
   ```json
-  { "token": "...", "user": { "id": "...", "email": "...", "role": "..." } }
+  { "user": { "id": "...", "email": "...", "role": "..." } }
   ```
+- **Cookie:** server sets HttpOnly auth cookie
 - **Invalid credentials (401):**
   ```json
   { "error": "Invalid email or password" }
@@ -32,7 +33,7 @@ End the current session.
 
 Get the currently authenticated user's info.
 
-- **Headers:** `Authorization: Bearer <token>`
+- **Auth:** HttpOnly auth cookie
 - **Success (200):**
   ```json
   { "id": "...", "email": "...", "role": "...", "status": "..." }
