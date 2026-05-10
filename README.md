@@ -11,6 +11,31 @@ PenguWave is a full-stack security operations portal with authentication, role-b
 
 ## How to Run
 
+### Quick Start (Docker)
+
+If you have Docker installed, you can run the full stack (PostgreSQL + backend + frontend) with one command:
+
+```bash
+docker compose up --build
+```
+
+Then open:
+
+- Frontend: `http://localhost:8080`
+- Backend API: `http://localhost:3001`
+
+Helpful commands:
+
+```bash
+# stop containers
+docker compose down
+
+# stop and remove DB data volume
+docker compose down -v
+```
+
+### Manual Local Development
+
 ### Prerequisites
 
 - Node.js 18+
