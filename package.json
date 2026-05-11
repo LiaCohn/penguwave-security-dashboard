@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "server:dev": "npm run dev -w penguwave-server",
     "server:build": "npm run build -w penguwave-server",
-    "server:db-setup": "npm run db-setup -w penguwave-server"
+    "server:db-setup": "npm run db-setup -w penguwave-server",
+    "server:test": "npm run test -w penguwave-server"
   },
   "dependencies": {
     "react": "^19.2.0",
