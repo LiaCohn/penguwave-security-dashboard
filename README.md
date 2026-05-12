@@ -93,6 +93,18 @@ For cross-origin local runs, set:
 export CORS_ORIGIN="http://localhost:5173"
 ```
 
+## Demo accounts (seed data)
+
+After `npm run db:setup` (or Docker startup, which runs migrate + seed), the database contains three **dummy** users for local testing. These are not real accounts.
+
+| Email | Password | Role | Status |
+| --- | --- | --- | --- |
+| `admin@penguwave.io` | `admin123` | admin | active |
+| `analyst@penguwave.io` | `pass456` | analyst | active |
+| `viewer@penguwave.io` | `view789` | viewer | **disabled** |
+
+Use the two **active** rows to sign in through the UI or `POST /api/auth/login`. The viewer row exists in the DB but **cannot log in** (disabled users are rejected at login like invalid credentials), which is useful for testing disabled-account behavior.
+
 ## Authentication
 
 - Login uses `POST /api/auth/login` with email + password.
