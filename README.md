@@ -149,21 +149,26 @@ Use the two **active** rows to sign in through the UI or `POST /api/auth/login`.
 
 ## Production Secure Deployment Notes
 
-1. **Secrets management**
-   - Store `JWT_SECRET` and `DATABASE_URL` in a secrets manager.
-   - Use long random `JWT_SECRET` and rotate periodically.
-2. **Transport security**
-   - Terminate TLS at load balancer/reverse proxy.
-   - Enforce HTTPS only and HSTS.
-3. **Cookie/session hardening**
-   - Keep `Secure` cookies enabled.
-   - Consider short-lived access token + refresh token rotation.
-4. **Database security**
-   - Private network only; no public DB access.
-   - Least-privilege DB user and regular backups.
-5. **Monitoring and auditing**
-   - Centralized logs for login failures, admin actions, and 4xx/5xx spikes.
-   - Alerting on brute-force patterns and suspicious privilege changes.
-6. **Operational safeguards**
-   - Automated dependency vulnerability scanning.
-   - CI checks for lint, typecheck, and security regressions.
+These are the main production goals in plain terms: **encrypt traffic to browsers**, **protect secrets and the database**, and **make abuse and outages visible**.
+
+### 1. HTTPS (and why it matters for login)
+
+- In production, browsers should talk to your API over **HTTPS** so passwords and cookies are not readable on the wire.
+- The session cookie is **`Secure` in production**, which means the browser only sends it on **https://** URLs. So you need HTTPS in front of the app (for example TLS at a load balancer); plain **http://** alone is a bad fit for this cookie setup.
+
+### 2. Secrets
+
+- Provide `JWT_SECRET`, `DATABASE_URL`, and other sensitive values from a **secrets manager** or the host platform’s secret injection—never real values in git or screenshots.
+- Use a **long random** `JWT_SECRET`. Rotating it invalidates existing JWTs unless you later add key IDs or overlapping signing keys.
+
+### 3. Database and network
+
+- Keep PostgreSQL on a **private network** (no public DB port); reach it only from the app or operators over a controlled path.
+- Use a **least-privilege** DB user for the application, take **regular backups**, and periodically **test restores**.
+
+### 4. Observability and delivery hygiene
+
+- Centralize **structured logs** (login failures, admin/user changes, elevated 4xx/5xx rates) and add **alerts** where brute force or misconfiguration would show up first; login is already **rate-limited** in this codebase.
+- Run **dependency vulnerability scanning** plus **lint and typecheck** in CI so risky dependency drift and obvious mistakes do not ship silently.
+
+**Optional next steps** (not required for a secure baseline, but common as the product grows): persist **events** in Postgres instead of the mock JSON file for multi-instance deployments and richer querying; consider **shorter-lived access tokens** with **refresh token rotation** if session lifetime needs tightening beyond the current cookie + JWT setup.
